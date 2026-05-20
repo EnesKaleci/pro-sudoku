@@ -169,25 +169,27 @@ function cellLabel(val, size) {
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 :root {
-  --bg:#020203; --surface:rgba(7,8,10,.9); --surface2:rgba(12,12,15,.96);
-  --border:#222229; --accent:#8f1f3a; --accent2:#2f6df6;
+  --bg:#020203; --surface:rgba(7,8,10,.82); --surface2:rgba(12,12,15,.92);
+  --border:rgba(70,46,57,.82); --accent:#8f1f3a; --accent2:#2f6df6;
   --text:#f1f5f9; --muted:#7a808c; --error:#ef4444; --success:#22c55e;
-  --cell-bg:#07080b; --cell-hover:#121217; --cell-selected:#1d0d16;
-  --cell-highlight:#101014; --cell-locked:#030405;
+  --cell-bg:rgba(7,8,11,.78); --cell-hover:rgba(24,18,24,.86); --cell-selected:rgba(64,21,39,.82);
+  --cell-highlight:rgba(17,17,20,.64); --cell-locked:rgba(3,4,5,.86);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh;overflow-x:hidden;}
 .app{min-height:100vh;display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden;
   background:radial-gradient(ellipse 70% 45% at 50% 0%,rgba(143,31,58,.12),transparent 62%),var(--bg);}
 .app::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:url('/black-rose-bg.png') right 35% center / auto 115vh no-repeat;
-  opacity:.58;filter:brightness(1.35) contrast(1.18);}
+  background:url('/black-rose-bg.png') center center / auto 128vh no-repeat;
+  opacity:.92;filter:brightness(2.08) contrast(1.26);}
 .app::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:linear-gradient(180deg,rgba(2,2,3,.2),rgba(2,2,3,.7) 58%,rgba(2,2,3,.92)),
-             linear-gradient(90deg,rgba(2,2,3,.92),rgba(2,2,3,.34) 54%,rgba(2,2,3,.88));}
+  background:linear-gradient(180deg,rgba(2,2,3,.06),rgba(2,2,3,.34) 58%,rgba(2,2,3,.72)),
+             linear-gradient(90deg,rgba(2,2,3,.72),rgba(2,2,3,.1) 54%,rgba(2,2,3,.66));}
 .app>*{position:relative;z-index:1;}
 @media (max-width:640px){
-  .app::before{background-position:center 58%;background-size:auto 105vh;opacity:.44;}
+  .app::before{background-position:center 43%;background-size:auto 118vh;opacity:.95;filter:brightness(2.22) contrast(1.28);}
+  .app::after{background:linear-gradient(180deg,rgba(2,2,3,.08),rgba(2,2,3,.24) 52%,rgba(2,2,3,.66)),
+              linear-gradient(90deg,rgba(2,2,3,.42),rgba(2,2,3,.04) 52%,rgba(2,2,3,.42));}
 }
 
 /* HEADER */
@@ -235,15 +237,15 @@ input[type=range]::-webkit-slider-thumb:hover{box-shadow:0 0 0 5px rgba(143,31,5
 /* BOARD WRAPPER */
 .board-wrap{width:100%;max-width:560px;padding:10px 16px;}
 .board-scroll{overflow:auto;-webkit-overflow-scrolling:touch;}
-.board{display:inline-grid;gap:1px;background:var(--border);border:2px solid var(--border);
-  border-radius:8px;overflow:hidden;}
+.board{display:inline-grid;gap:1px;background:rgba(94,58,72,.5);border:2px solid rgba(122,73,91,.72);
+  border-radius:8px;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.34);backdrop-filter:blur(2px);}
 
 /* CELL */
 .cell{background:var(--cell-bg);display:flex;align-items:center;justify-content:center;
   cursor:pointer;position:relative;transition:background .12s;
   font-family:'Rajdhani',sans-serif;font-weight:600;user-select:none;
   min-width:0;min-height:0;}
-.cell.locked{background:var(--cell-locked);color:#94a3b8;font-weight:700;cursor:default;}
+.cell.locked{background:var(--cell-locked);color:#aab0bb;font-weight:700;cursor:default;}
 .cell.selected{background:var(--cell-selected)!important;}
 .cell.highlight{background:var(--cell-highlight);}
 .cell.same-num{background:#1a1117;}
