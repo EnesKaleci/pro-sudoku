@@ -631,14 +631,14 @@ export default function ProSudoku() {
         hintTapRef.current = { count: 3, giftWindowUntil: now + HINT_GIFT_WINDOW_MS };
         setHintAlert({
           title: "ENES SOR",
-          message: "\u0130pucuna 3 kere art arda bast\u0131n. Devam etmeden \u00f6nce Enes'e sor.",
+          message: "Devam etmeden \u00f6nce Enes'e sor.",
         });
       } else if (inGiftWindow && nextHintTapCount >= 6) {
         hintTapRef.current = { count: 0, giftWindowUntil: 0 };
         setHints(maxHints(difficulty));
         setHintAlert({
           title: "ENESTEN HED\u0130YE",
-          message: "5 dakika i\u00e7inde 3 kere daha bast\u0131n. \u0130pucu hakk\u0131n yenilendi.",
+          message: "\u0130pucu hakk\u0131n yenilendi.",
         });
       } else {
         hintTapRef.current = {
