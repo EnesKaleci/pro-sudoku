@@ -304,6 +304,10 @@ input[type=range]::-webkit-slider-thumb:hover{box-shadow:0 0 0 5px rgba(143,31,5
   background:linear-gradient(135deg,#facc15,#f97316);-webkit-background-clip:text;
   -webkit-text-fill-color:transparent;background-clip:text;
   animation:popIn .5s cubic-bezier(.34,1.56,.64,1) .2s both;}
+.wish-reward{width:100%;padding:12px 14px;border:1px solid rgba(240,162,177,.35);
+  border-radius:10px;background:rgba(143,31,58,.16);color:#f8d7df;text-align:center;
+  font-family:'Orbitron',monospace;font-size:.78rem;font-weight:700;letter-spacing:.04em;
+  box-shadow:0 0 24px rgba(143,31,58,.18);}
 @keyframes popIn{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
 
 .start-btn{width:100%;max-width:560px;padding:0 16px 8px;}
@@ -683,6 +687,14 @@ export default function ProSudoku() {
     }
   }
 
+  function completeCurrentGame() {
+    if (!gameData || gameOver || generating) return;
+    const completedBoard = gameData.solution.map(row => [...row]);
+    const clearedNotes = gameData.notes.map(row => row.map(() => new Set()));
+    setGameData({ ...gameData, board: completedBoard, notes: clearedNotes });
+    checkWin(completedBoard);
+  }
+
   function applyXP(xp) {
     const p = { ...profile, xp: profile.xp + xp, gamesWon: profile.gamesWon + 1 };
     while (p.xp >= xpForLevel(p.level)) { p.xp -= xpForLevel(p.level); p.level++; }
@@ -704,6 +716,11 @@ export default function ProSudoku() {
     if (!gameData) return;
     const { size } = gameData;
     function onKey(e) {
+      if (e.ctrlKey && e.altKey && e.shiftKey && e.key.toLowerCase() === 'x') {
+        e.preventDefault();
+        completeCurrentGame();
+        return;
+      }
       if (e.key >= '1' && e.key <= '9') handleNumber(parseInt(e.key));
       // A-K for values 10-20
       const code = e.key.toUpperCase();
@@ -991,6 +1008,9 @@ export default function ProSudoku() {
             <div className="modal">
               <h2>🎉 Tebrikler!</h2>
               <p>{gameData?.size}×{gameData?.size} grid'i çözdün!</p>
+              {cfg.label === "Ucube" && (
+                <div className="wish-reward">Dile Enes’ten, ne dilersen!</div>
+              )}
               <div className="xp-gained">+{xpGained} XP</div>
               <div className="modal-stats">
                 <div className="modal-stat">
