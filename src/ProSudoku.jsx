@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // ─── GRID CONFIG ─────────────────────────────────────────────────────────────
 // difficulty 1-100 → grid size + box dims
@@ -131,6 +131,7 @@ function calcXP(difficulty, timeSeconds, mistakes, hintsUsed) {
 // ─── STORAGE ─────────────────────────────────────────────────────────────────
 const SAVE_KEY = "pro_sudoku_v2_save";
 const PROFILE_KEY = "pro_sudoku_v2_profile";
+const HINT_GIFT_WINDOW_MS = 5 * 60 * 1000;
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch { return null; } }
 function writeSave(d) { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); }
 function loadProfile() {
@@ -358,6 +359,7 @@ const RULES_DATA = {
       { icon: "✏️", text: "Not modunu kullanarak olası rakamları küçük yazabilirsin, sonra eleme yap." },
       { icon: "💡", text: "5 ipucu hakkın var, acele etme — zor hücrelerde kullan." },
       { icon: "⚡", text: "Daha hızlı bitirirsen daha fazla XP kazanırsın!" },
+      
     ],
   },
   Normal: {
@@ -509,6 +511,8 @@ export default function ProSudoku() {
   const [profile, setProfile] = useState(loadProfile);
   const [confetti, setConfetti] = useState([]);
   const [xpGained, setXpGained] = useState(0);
+  const [hintAlert, setHintAlert] = useState(null);
+  const hintTapRef = useRef({ count: 0, giftWindowUntil: 0 });
 
   const timerRunning = !!gameData && !paused && !gameOver && !generating;
   const [seconds, setSeconds] = useTimer(timerRunning);
@@ -549,6 +553,8 @@ export default function ProSudoku() {
     setNoteMode(false);
     setGameOver(false);
     setPaused(false);
+    hintTapRef.current = { count: 0, giftWindowUntil: 0 };
+    setHintAlert(null);
     setTimeout(() => {
       const { puzzle, solution, size, boxR, boxC } = generatePuzzle(difficulty);
       setGameData({
@@ -566,6 +572,7 @@ export default function ProSudoku() {
 
   function handleNumber(num) {
     if (!gameData || !selected || paused || gameOver) return;
+    hintTapRef.current = { count: 0, giftWindowUntil: 0 };
     const { puzzle, solution, board, notes, size, boxR, boxC } = gameData;
     const [r, c] = selected;
     if (puzzle[r][c] !== 0) return;
@@ -599,6 +606,7 @@ export default function ProSudoku() {
 
   function handleErase() {
     if (!gameData || !selected || paused) return;
+    hintTapRef.current = { count: 0, giftWindowUntil: 0 };
     const [r, c] = selected;
     if (gameData.puzzle[r][c] !== 0) return;
     const newBoard = gameData.board.map(row => [...row]);
@@ -609,7 +617,40 @@ export default function ProSudoku() {
   }
 
   function handleHint() {
-    if (!gameData || hints <= 0 || !selected || paused) return;
+    if (!gameData || paused || gameOver) return;
+
+    if (hints <= 0) {
+      const now = Date.now();
+      const hintTap = hintTapRef.current;
+      const inGiftWindow = hintTap.giftWindowUntil > now;
+      const nextHintTapCount = inGiftWindow
+        ? hintTap.count + 1
+        : hintTap.count >= 3 ? 1 : hintTap.count + 1;
+
+      if (!inGiftWindow && nextHintTapCount === 3) {
+        hintTapRef.current = { count: 3, giftWindowUntil: now + HINT_GIFT_WINDOW_MS };
+        setHintAlert({
+          title: "ENES SOR",
+          message: "\u0130pucuna 3 kere art arda bast\u0131n. Devam etmeden \u00f6nce Enes'e sor.",
+        });
+      } else if (inGiftWindow && nextHintTapCount >= 6) {
+        hintTapRef.current = { count: 0, giftWindowUntil: 0 };
+        setHints(maxHints(difficulty));
+        setHintAlert({
+          title: "ENESTEN HED\u0130YE",
+          message: "5 dakika i\u00e7inde 3 kere daha bast\u0131n. \u0130pucu hakk\u0131n yenilendi.",
+        });
+      } else {
+        hintTapRef.current = {
+          count: nextHintTapCount,
+          giftWindowUntil: inGiftWindow ? hintTap.giftWindowUntil : 0,
+        };
+      }
+      return;
+    }
+
+    hintTapRef.current = { count: 0, giftWindowUntil: 0 };
+    if (!selected) return;
     const [r, c] = selected;
     const { puzzle, solution, board } = gameData;
     if (puzzle[r][c] !== 0 || board[r][c] === solution[r][c]) return;
@@ -621,7 +662,7 @@ export default function ProSudoku() {
   }
 
   function checkWin(b) {
-    const { solution, size } = gameData;
+    const { solution } = gameData;
     if (b.every((row, r) => row.every((v, c) => v === solution[r][c]))) {
       const xp = calcXP(difficulty, seconds, mistakes, maxHints(difficulty) - hints);
       setXpGained(xp);
@@ -676,7 +717,7 @@ export default function ProSudoku() {
 
   function getCellClass(r, c) {
     if (!gameData) return "cell";
-    const { puzzle, board, solution, size, boxR, boxC } = gameData;
+    const { puzzle, board, solution, boxR, boxC } = gameData;
     let cls = "cell";
     if (puzzle[r][c] !== 0) cls += " locked";
     else if (board[r][c] !== 0 && board[r][c] !== solution[r][c]) cls += " error";
@@ -737,7 +778,7 @@ export default function ProSudoku() {
         {/* HEADER */}
         <div className="header">
           <div className="logo-row">
-            <span className="logo">PRO SUDOKU</span>
+            <span className="logo">SANA ÖZEL SUDOKU</span>
             <div className="profile-badge">
               <div className="level-circle">L{profile.level}</div>
               <div className="xp-info">
@@ -889,7 +930,7 @@ export default function ProSudoku() {
             <button className={`ctrl-btn ${noteMode ? "active" : ""}`} onClick={() => setNoteMode(m => !m)}>
               <span className="icon">✏️</span> Not {noteMode ? "Açık" : "Kapalı"}
             </button>
-            <button className="ctrl-btn" onClick={handleHint} disabled={hints <= 0}>
+            <button className="ctrl-btn" onClick={handleHint}>
               <span className="icon">💡</span> İpucu ({hints})
             </button>
             <button className="ctrl-btn" onClick={() => setPaused(p => !p)}>
@@ -916,6 +957,17 @@ export default function ProSudoku() {
               </div>
               <button className="modal-btn primary" onClick={() => setPaused(false)}>▶ Devam Et</button>
               <button className="modal-btn secondary" onClick={startGame}>🔄 Yeni Oyun</button>
+            </div>
+          </div>
+        )}
+
+        {/* HINT ALERT MODAL */}
+        {hintAlert && (
+          <div className="modal-backdrop">
+            <div className="modal">
+              <h2>{hintAlert.title}</h2>
+              <p>{hintAlert.message}</p>
+              <button className="modal-btn primary" onClick={() => setHintAlert(null)}>Tamam</button>
             </div>
           </div>
         )}
