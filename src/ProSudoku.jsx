@@ -165,6 +165,11 @@ function cellLabel(val, size) {
   return val <= 9 ? String(val) : String.fromCharCode(55 + val);
 }
 
+function symbolRangeLabel(size) {
+  if (size <= 9) return `1-${size}`;
+  return `1-9, A-${cellLabel(size, size)}`;
+}
+
 // ─── STYLES ──────────────────────────────────────────────────────────────────
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
@@ -380,14 +385,14 @@ const RULES_DATA = {
     color: "#60a5fa",
     icon: "🔵",
     grid: "12×12",
-    numbers: "1 – 12",
+    numbers: "1 – 9, A – C (10–12)",
     boxes: "3×4 (9 kutu)",
     hints: "4 ipucu hakkı",
     xpRange: "210 – 400 XP",
-    desc: "Genişletilmiş Sudoku. 12×12 grid'de 1'den 12'ye kadar rakamlar kullanılır. Her satır, sütun ve 3×4 kutuda hiçbir rakam tekrarlanmamalıdır.",
+    desc: "Genişletilmiş Sudoku. 12×12 grid'de 1–9 ve A–C sembolleri kullanılır (A=10, B=11, C=12). Her satır, sütun ve 3×4 kutuda hiçbir sembol tekrarlanmamalıdır.",
     tips: [
       { icon: "🗺️", text: "Grid büyüdü — önce köşe kutularını çözmeye çalış, orta kutular kendiliğinden açılır." },
-      { icon: "✏️", text: "Not modu şart! 12 rakamı takip etmek için mutlaka kullan." },
+      { icon: "✏️", text: "Not modu şart! 12 sembolü takip etmek için mutlaka kullan." },
       { icon: "🎯", text: "Bir satır veya sütunda sadece 1-2 boşluk kaldıysa önce onları doldur." },
       { icon: "⏱️", text: "Süre bonusu var — takılırsak ipucu kullan, zaman kaybetme." },
     ],
@@ -514,7 +519,7 @@ function RulesCard({ difficulty }) {
 // ─── MAIN ────────────────────────────────────────────────────────────────────
 export default function ProSudoku() {
   const [difficulty, setDifficulty] = useState(15);
-  const [gameData, setGameData] = useState(null); // {puzzle,solution,board,notes,size,boxR,boxC}
+  const [gameData, setGameData] = useState(null); // {puzzle,solution,board,notes,size,boxR,boxC,difficulty}
   const [selected, setSelected] = useState(null);
   const [noteMode, setNoteMode] = useState(false);
   const [mistakes, setMistakes] = useState(0);
@@ -531,7 +536,9 @@ export default function ProSudoku() {
   const timerRunning = !!gameData && !paused && !gameOver && !generating;
   const [seconds, setSeconds] = useTimer(timerRunning);
 
-  const cfg = getGridConfig(difficulty);
+  const sliderCfg = getGridConfig(difficulty);
+  const activeDifficulty = gameData?.difficulty ?? difficulty;
+  const activeCfg = getGridConfig(activeDifficulty);
 
   // Load save on mount
   useEffect(() => {
@@ -542,6 +549,7 @@ export default function ProSudoku() {
         board: saved.board,
         notes: saved.notes.map(row => row.map(s => new Set(s))),
         size: saved.size, boxR: saved.boxR, boxC: saved.boxC,
+        difficulty: saved.gameDifficulty ?? saved.difficulty,
       });
       setSeconds(saved.seconds);
       setDifficulty(saved.difficulty);
@@ -556,7 +564,7 @@ export default function ProSudoku() {
     writeSave({
       puzzle: gameData.puzzle, solution: gameData.solution, board: gameData.board,
       notes: gameData.notes.map(row => row.map(s => [...s])),
-      seconds, difficulty, mistakes, hints,
+      seconds, difficulty: gameData.difficulty ?? difficulty, gameDifficulty: gameData.difficulty ?? difficulty, mistakes, hints,
       size: gameData.size, boxR: gameData.boxR, boxC: gameData.boxC,
     });
   }, [gameData, seconds, mistakes, hints]);
@@ -574,7 +582,7 @@ export default function ProSudoku() {
       setGameData({
         puzzle, solution, board: puzzle.map(r => [...r]),
         notes: Array.from({ length: size }, () => Array.from({ length: size }, () => new Set())),
-        size, boxR, boxC,
+        size, boxR, boxC, difficulty,
       });
       setSeconds(0);
       setMistakes(0);
@@ -586,6 +594,7 @@ export default function ProSudoku() {
 
   function handleNumber(num) {
     if (!gameData || !selected || paused || gameOver) return;
+    if (num < 1 || num > gameData.size) return;
     hintTapRef.current = { count: 0, giftWindowUntil: 0 };
     const { puzzle, solution, board, notes, size, boxR, boxC } = gameData;
     const [r, c] = selected;
@@ -649,7 +658,7 @@ export default function ProSudoku() {
         });
       } else if (inGiftWindow && nextHintTapCount >= 6) {
         hintTapRef.current = { count: 0, giftWindowUntil: 0 };
-        setHints(maxHints(difficulty));
+        setHints(maxHints(gameData.difficulty ?? difficulty));
         setHintAlert({
           title: "ENESTEN HED\u0130YE",
           message: "\u0130pucu hakk\u0131n yenilendi.",
@@ -678,7 +687,8 @@ export default function ProSudoku() {
   function checkWin(b) {
     const { solution } = gameData;
     if (b.every((row, r) => row.every((v, c) => v === solution[r][c]))) {
-      const xp = calcXP(difficulty, seconds, mistakes, maxHints(difficulty) - hints);
+      const gameDifficulty = gameData.difficulty ?? difficulty;
+      const xp = calcXP(gameDifficulty, seconds, mistakes, maxHints(gameDifficulty) - hints);
       setXpGained(xp);
       setGameOver("win");
       applyXP(xp);
@@ -771,7 +781,7 @@ export default function ProSudoku() {
     return              { w: 26, fs: "0.6rem",  nfs: "0.2rem",  ncols: 5 };
   }
 
-  const size = gameData?.size ?? cfg.size;
+  const size = gameData?.size ?? sliderCfg.size;
   const cs = cellSize(size);
 
   // Number buttons for current grid size
@@ -832,11 +842,11 @@ export default function ProSudoku() {
               </div>
               <div className="stat-pill">
                 <span className="stat-label">Grid</span>
-                <span className="stat-value" style={{ color: cfg.color }}>{gameData.size}×{gameData.size}</span>
+                <span className="stat-value" style={{ color: activeCfg.color }}>{gameData.size}×{gameData.size}</span>
               </div>
               <div className="stat-pill">
                 <span className="stat-label">Seviye</span>
-                <span className="stat-value" style={{ color: cfg.color }}>{cfg.label}</span>
+                <span className="stat-value" style={{ color: activeCfg.color }}>{activeCfg.label}</span>
               </div>
               <div className="stat-pill">
                 <span className="stat-label">Hata</span>
@@ -853,14 +863,14 @@ export default function ProSudoku() {
           <div className="difficulty-wrap">
             <div className="diff-header">
               <span className="diff-label">Zorluk</span>
-              <span className="diff-badge" style={{ color: cfg.color }}>
-                {difficulty} — {cfg.label}
+              <span className="diff-badge" style={{ color: sliderCfg.color }}>
+                {difficulty} — {sliderCfg.label}
               </span>
             </div>
             <div className="slider-track">
               <div className="slider-fill" style={{
                 width: `${(difficulty - 1) / 99 * 100}%`,
-                background: `linear-gradient(90deg,#4ade80,${cfg.color})`
+                background: `linear-gradient(90deg,#4ade80,${sliderCfg.color})`
               }} />
               <input type="range" min="1" max="100" value={difficulty}
                 onChange={e => setDifficulty(Number(e.target.value))}
@@ -872,7 +882,7 @@ export default function ProSudoku() {
               ))}
             </div>
             <div className="grid-info">
-              {cfg.size}×{cfg.size} grid · 1–{cfg.size} arası rakamlar · {cfg.boxR}×{cfg.boxC} kutular
+              {sliderCfg.size}×{sliderCfg.size} grid · {symbolRangeLabel(sliderCfg.size)} sembolleri · {sliderCfg.boxR}×{sliderCfg.boxC} kutular
             </div>
           </div>
         </div>
@@ -890,7 +900,7 @@ export default function ProSudoku() {
             <div className="generating-overlay">
               <div className="spinner" />
               <span className="gen-label">
-                {cfg.size}×{cfg.size} BOARD ÜRETİLİYOR...
+                {sliderCfg.size}×{sliderCfg.size} BOARD ÜRETİLİYOR...
               </span>
             </div>
           ) : gameData ? (
@@ -942,7 +952,7 @@ export default function ProSudoku() {
                 ZOR SEVIYE SEÇ, OYNA
               </div>
               <div style={{ fontSize: "0.8rem" }}>
-                Slider'ı kaydır → {cfg.size}×{cfg.size} grid
+                Slider'ı kaydır → {sliderCfg.size}×{sliderCfg.size} grid
               </div>
             </div>
           )}
@@ -979,7 +989,7 @@ export default function ProSudoku() {
                 </div>
                 <div className="modal-stat">
                   <div className="ms-label">Grid</div>
-                  <div className="ms-val" style={{ color: cfg.color }}>{gameData?.size}×{gameData?.size}</div>
+                  <div className="ms-val" style={{ color: activeCfg.color }}>{gameData?.size}×{gameData?.size}</div>
                 </div>
               </div>
               <button className="modal-btn primary" onClick={() => setPaused(false)}>▶ Devam Et</button>
@@ -1008,7 +1018,7 @@ export default function ProSudoku() {
             <div className="modal">
               <h2>🎉 Tebrikler!</h2>
               <p>{gameData?.size}×{gameData?.size} grid'i çözdün!</p>
-              {cfg.label === "Ucube" && (
+              {activeCfg.label === "Ucube" && (
                 <div className="wish-reward">Dile Enes’ten, ne dilersen!</div>
               )}
               <div className="xp-gained">+{xpGained} XP</div>
@@ -1019,7 +1029,7 @@ export default function ProSudoku() {
                 </div>
                 <div className="modal-stat">
                   <div className="ms-label">Seviye</div>
-                  <div className="ms-val" style={{ color: cfg.color }}>{cfg.label}</div>
+                  <div className="ms-val" style={{ color: activeCfg.color }}>{activeCfg.label}</div>
                 </div>
                 <div className="modal-stat">
                   <div className="ms-label">Hata</div>
