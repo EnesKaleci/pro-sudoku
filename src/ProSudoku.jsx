@@ -241,9 +241,10 @@ input[type=range]::-webkit-slider-thumb:hover{box-shadow:0 0 0 5px rgba(143,31,5
 
 /* BOARD WRAPPER */
 .board-wrap{width:100%;max-width:560px;padding:10px 16px;}
-.board-scroll{overflow:auto;-webkit-overflow-scrolling:touch;}
+.board-scroll{width:100%;overflow:visible;display:flex;justify-content:center;}
 .board{display:inline-grid;gap:1px;background:rgba(94,58,72,.5);border:2px solid rgba(122,73,91,.72);
-  border-radius:8px;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.34);backdrop-filter:blur(2px);}
+  width:100%;aspect-ratio:1/1;border-radius:8px;overflow:hidden;
+  box-shadow:0 16px 48px rgba(0,0,0,.34);backdrop-filter:blur(2px);}
 
 /* CELL */
 .cell{background:var(--cell-bg);display:flex;align-items:center;justify-content:center;
@@ -775,10 +776,10 @@ export default function ProSudoku() {
 
   // Cell size — shrink for bigger grids
   function cellSize(size) {
-    if (size <= 9)  return { w: 52, fs: "1.15rem", nfs: "0.38rem", ncols: 3 };
-    if (size <= 12) return { w: 40, fs: "0.9rem",  nfs: "0.3rem",  ncols: 4 };
-    if (size <= 16) return { w: 32, fs: "0.72rem", nfs: "0.25rem", ncols: 4 };
-    return              { w: 26, fs: "0.6rem",  nfs: "0.2rem",  ncols: 5 };
+    if (size <= 9)  return { maxW: 472, fs: "clamp(1rem, 4vw, 1.15rem)", nfs: "clamp(.28rem, 1.15vw, .38rem)", ncols: 3 };
+    if (size <= 12) return { maxW: 500, fs: "clamp(.72rem, 2.8vw, .9rem)", nfs: "clamp(.22rem, .9vw, .3rem)", ncols: 4 };
+    if (size <= 16) return { maxW: 528, fs: "clamp(.52rem, 2.15vw, .72rem)", nfs: "clamp(.16rem, .7vw, .25rem)", ncols: 4 };
+    return              { maxW: 528, fs: "clamp(.38rem, 1.65vw, .6rem)", nfs: "clamp(.12rem, .55vw, .2rem)", ncols: 5 };
   }
 
   const size = gameData?.size ?? sliderCfg.size;
@@ -906,8 +907,9 @@ export default function ProSudoku() {
           ) : gameData ? (
             <div className="board-scroll">
               <div className="board" style={{
-                gridTemplateColumns: `repeat(${gameData.size}, ${cs.w}px)`,
-                gridTemplateRows: `repeat(${gameData.size}, ${cs.w}px)`,
+                maxWidth: `${cs.maxW}px`,
+                gridTemplateColumns: `repeat(${gameData.size}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${gameData.size}, minmax(0, 1fr))`,
               }}>
                 {gameData.board.map((row, r) =>
                   row.map((val, c) => {
@@ -919,7 +921,7 @@ export default function ProSudoku() {
                       <div
                         key={`${r}-${c}`}
                         className={getCellClass(r, c)}
-                        style={{ fontSize: cs.fs, width: cs.w, height: cs.w }}
+                        style={{ fontSize: cs.fs }}
                         onClick={() => !paused && !gameOver && setSelected([r, c])}
                       >
                         {showNotes ? (
